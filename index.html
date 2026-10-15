@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HSC Science Routine & Progress Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+    .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    h1 { color: #1e3c72; text-align: center; }
+    .task-section { margin-bottom: 30px; }
+    .task-input { display: flex; gap: 10px; margin-bottom: 15px; }
+    .task-input input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+    .task-input button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    .task-list { list-style: none; padding: 0; }
+    .task-item { display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px 15px; border-radius: 6px; margin-bottom: 8px; border-left: 5px solid #007bff; }
+    .task-item.completed { text-decoration: line-through; opacity: 0.6; border-left-color: #28a745; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; text-align: center; }
+    .stat-card { background: #eef2f7; padding: 15px; border-radius: 8px; }
+    .stat-card h3 { margin: 0 0 5px 0; color: #333; }
+    .stat-card p { margin: 0; font-size: 22px; font-weight: bold; color: #007bff; }
+    .chart-container { position: relative; height: 300px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>📚 HSC Science Daily Goal & Progress Tracker</h1>
+  
+  <!-- Stats Section -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <h3>আজকের অগ্রগতি</h3>
+      <p id="daily-progress">0%</p>
+    </div>
+    <div class="stat-card">
+      <h3>সাপ্তাহিক গড়</h3>
+      <p id="weekly-progress">72%</p>
+    </div>
+    <div class="stat-card">
+      <h3>মাসিক অগ্রগতি</h3>
+      <p id="monthly-progress">78%</p>
+    </div>
+  </div>
+
+  <!-- Task Section -->
+  <div class="task-section">
+    <h2>আজকের পড়া/গোলসমূহ</h2>
+    <div class="task-input">
+      <input type="text" id="new-task" placeholder="যেমন: ফিজিক্স ২য় পত্র - স্থির তড়িৎ ৩টি গাণিতিক সমস্যা...">
+      <button onclick="addTask()">যোগ করুন</button>
+    </div>
+    <ul class="task-list" id="task-list"></ul>
+  </div>
+
+  <!-- Chart Section -->
+  <div class="chart-section">
+    <h2>📊 প্রগ্রেস লেখচিত্র (Progress Chart)</h2>
+    <div class="chart-container">
+      <canvas id="progressChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  let tasks = JSON.parse(localStorage.getItem('hsc_tasks')) || [
+    { text: "পদার্থবিজ্ঞান: ভেক্টর অধ্যায়ের সিকিউ অনুশীলন", completed: false },
+    { text: "রসায়ন: জৈব যৌগ ৩টি বিক্রিয়া মুখস্থ ও নোট", completed: false },
+    { text: "উচ্চতর গণিত: ক্যালকুলাস ৯.১ সমাধান", completed: false }
+  ];
+
+  function saveAndRender() {
+    localStorage.setItem('hsc_tasks', JSON.stringify(tasks));
+    renderTasks();
+    updateStatsAndChart();
+  }
+
+  function renderTasks() {
+    const list = document.getElementById('task-list');
+    list.innerHTML = '';
+    tasks.forEach((task, index) => {
+      const li = document.createElement('li');
+      li.className = `task-item ${task.completed ? 'completed' : ''}`;
+      li.innerHTML = `
+        <span><input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${index})"> ${task.text}</span>
+        <button onclick="deleteTask(${index})" style="background:red; color:white; border:none; border-radius:4px; cursor:pointer;">মুছে ফেলুন</button>
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  function addTask() {
+    const input = document.getElementById('new-task');
+    if (input.value.trim() !== '') {
+      tasks.push({ text: input.value, completed: false });
+      input.value = '';
+      saveAndRender();
+    }
+  }
+
+  function toggleTask(index) {
+    tasks[index].completed = !tasks[index].completed;
+    saveAndRender();
+  }
+
+  function deleteTask(index) {
+    tasks.splice(index, 1);
+    saveAndRender();
+  }
+
+  // Chart setup
+  const ctx = document.getElementById('progressChart').getContext('2d');
+  const progressChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['আজ', 'গতকাল', '২ দিন আগে', '৩ দিন আগে', '৪ দিন আগে', '৫ দিন আগে', '৬ দিন আগে'],
+      datasets: [{
+        label: 'সম্পন্ন কাজের হার (%)',
+        data: [0, 80, 65, 90, 75, 85, 70],
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, max: 100 } }
+    }
+  });
+
+  function updateStatsAndChart() {
+    const completedCount = tasks.filter(t => t.completed).length;
+    const totalCount = tasks.length;
+    const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    
+    document.getElementById('daily-progress').innerText = percentage + '%';
+    progressChart.data.datasets[0].data[0] = percentage;
+    progressChart.update();
+  }
+
+  // Initial render
+  saveAndRender();
+</script>
+
+</body>
+</html>
